@@ -55,7 +55,7 @@ function makeScoreByShape(shape: Shape): number {
 type EncryptedStrategyGuide = EncryptedStrategyGuideRow[];
 type EncryptedStrategyGuideRow = {
   oponentShape: EncryptedOponentShape;
-  yourShape: EncryptedYourShape;
+  fightResult: EncryptedFightResult;
 };
 
 enum EncryptedOponentShape {
@@ -64,7 +64,7 @@ enum EncryptedOponentShape {
   C = "C",
 }
 
-enum EncryptedYourShape {
+enum EncryptedFightResult {
   X = "X",
   Y = "Y",
   Z = "Z",
@@ -73,7 +73,7 @@ enum EncryptedYourShape {
 type StrategyGuide = StrategyGuideRow[];
 type StrategyGuideRow = {
   oponentShape: Shape;
-  yourShape: Shape;
+  fightResult: FightResult;
 };
 
 function decryptStrategyGuide(
@@ -87,8 +87,31 @@ function decryptStrategyGuideRow(
 ): StrategyGuideRow {
   return {
     oponentShape: decryptOponentShape(encryptedStrategyGuideRow.oponentShape),
-    yourShape: decryptYourShape(encryptedStrategyGuideRow.yourShape),
+    fightResult: decryptFightResult(encryptedStrategyGuideRow.fightResult),
   };
+}
+
+function makeYourShape(oponentShape: Shape, fightResult: FightResult): Shape {
+  switch (oponentShape) {
+    case Shape.Paper:
+      return {
+        [FightResult.LeftWon]: Shape.Rock,
+        [FightResult.Draw]: Shape.Paper,
+        [FightResult.RightWon]: Shape.Scissors,
+      }[fightResult];
+    case Shape.Rock:
+      return {
+        [FightResult.LeftWon]: Shape.Scissors,
+        [FightResult.Draw]: Shape.Rock,
+        [FightResult.RightWon]: Shape.Paper,
+      }[fightResult];
+    case Shape.Scissors:
+      return {
+        [FightResult.LeftWon]: Shape.Paper,
+        [FightResult.Draw]: Shape.Scissors,
+        [FightResult.RightWon]: Shape.Rock,
+      }[fightResult];
+  }
 }
 
 function decryptOponentShape(
@@ -101,21 +124,23 @@ function decryptOponentShape(
   }[encryptedOponentShape];
 }
 
-function decryptYourShape(encryptedYourShape: EncryptedYourShape): Shape {
+function decryptFightResult(
+  encryptedFightResult: EncryptedFightResult,
+): FightResult {
   return {
-    [EncryptedYourShape.X]: Shape.Rock,
-    [EncryptedYourShape.Y]: Shape.Paper,
-    [EncryptedYourShape.Z]: Shape.Scissors,
-  }[encryptedYourShape];
+    [EncryptedFightResult.X]: FightResult.LeftWon,
+    [EncryptedFightResult.Y]: FightResult.Draw,
+    [EncryptedFightResult.Z]: FightResult.RightWon,
+  }[encryptedFightResult];
 }
 
 function parseRawEncryptedStrategyGuideRow(
   str: string,
 ): EncryptedStrategyGuideRow {
-  const [oponentShape, yourShape] = str.split(" ");
+  const [oponentShape, fightResult] = str.split(" ");
   return {
     oponentShape: oponentShape as EncryptedOponentShape,
-    yourShape: yourShape as EncryptedYourShape,
+    fightResult: fightResult as EncryptedFightResult,
   };
 }
 
@@ -128,8 +153,8 @@ async function main() {
   const encryptedStrategyGuide = rawRows.map(parseRawEncryptedStrategyGuideRow);
   const strategyGuide = decryptStrategyGuide(encryptedStrategyGuide);
 
-  const scoresByFightId = strategyGuide.map(({ oponentShape, yourShape }) =>
-    makeFightScore(oponentShape, yourShape)
+  const scoresByFightId = strategyGuide.map(({ oponentShape, fightResult }) =>
+    makeFightScore(oponentShape, makeYourShape(oponentShape, fightResult))
   );
   console.log({ scoresByFightId });
   const sumOfScores = scoresByFightId.reduce((sum, score) => sum + score, 0);
