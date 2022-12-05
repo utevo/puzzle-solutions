@@ -21,24 +21,23 @@ function makeMove(rawMove: string): Move {
 }
 
 function runMove(state: State, move: Move) {
-  for (const _ of Array(move.quantity)) {
-    runSingleOperation(state, move);
-  }
+  const moved = state[move.from - 1].splice(state[move.from - 1].length - move.quantity, move.quantity);
+  state[move.to - 1].push(...moved)
 }
 
 type Operation = Pick<Move, "from" | "to">;
 
-function runSingleOperation(state: State, operation: Operation) {
-  const fromStack = state[operation.from - 1];
-  const toStack = state[operation.to - 1];
+// function runSingleOperation(state: State, operation: Operation) {
+//   const fromStack = state[operation.from - 1];
+//   const toStack = state[operation.to - 1];
 
-  const movedItem = fromStack.pop();
-  if (movedItem === undefined) {
-    throw new Error();
-  }
+//   const movedItem = fromStack.pop();
+//   if (movedItem === undefined) {
+//     throw new Error();
+//   }
 
-  toStack.push(movedItem);
-}
+//   toStack.push(movedItem);
+// }
 
 function makeOutput(state: State): string {
   return state.flatMap((stack) => stack.at(-1) ?? []).join("");
