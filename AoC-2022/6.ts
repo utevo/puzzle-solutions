@@ -4,6 +4,8 @@ function isStartOfPacketMarker(maybeSOPM: MaybeStartOfPacketMarker): boolean {
   return (new Set(maybeSOPM)).size === maybeSOPM.length;
 }
 
+const soughtLength = 14;
+
 async function main() {
   const text = await Deno.readTextFile("./inputs/6.txt");
   const dataStream = text.trimEnd();
@@ -16,10 +18,10 @@ async function main() {
 
   let result;
 
-  for (let i = 0; i < dataStream.length - 3; i++) {
-    const maybeSOPM = dataStream.slice(i, i + 4);
+  for (let i = 0; i < dataStream.length - soughtLength - 1; i++) {
+    const maybeSOPM = dataStream.slice(i, i + soughtLength);
     if (isStartOfPacketMarker(maybeSOPM)) {
-      result = i + 4;
+      result = i + soughtLength;
       break;
     }
   }
