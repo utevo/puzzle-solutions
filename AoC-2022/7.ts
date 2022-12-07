@@ -181,19 +181,28 @@ async function main() {
   const filesystem = filesystemFromInput(input);
   const sizeByDir = sizeByDirFromFilesystem(filesystem);
 
+  const neededSpace = 30000000;
+  const freeSpace = 70000000 - (sizeByDir.get(filesystem.root) as number);
+  const neededToDelete = neededSpace - freeSpace;
+  console.log({ neededToDelete });
+
   const sizeByDirFiltered: SizeByDir = new Map();
   for (const [dir, size] of sizeByDir.entries()) {
-    if (size <= 100000) {
+    if (size >= neededToDelete) {
       sizeByDirFiltered.set(dir, size);
     }
   }
 
-  const sum = [...sizeByDirFiltered.values()].reduce(
-    (sum, value) => sum + value,
-    0,
-  );
+  const sizeByDirFilteredSorted = [...sizeByDirFiltered.entries()].sort((
+    [_, aSize],
+    [__, bSize],
+  ) => aSize - bSize);
 
-  console.log({ sum });
+  console.log({
+    sizeByDirFiltered,
+    sizeByDirFilteredSorted,
+    result: sizeByDirFilteredSorted[0],
+  });
 }
 
 await main();
