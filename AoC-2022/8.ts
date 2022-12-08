@@ -92,7 +92,7 @@ function makeTreeScore(
   function makeTreeScoreBot(): number {
     let score = 0;
 
-    for (let yi = thisY + 1; yi < n; yi++) {
+    for (let yi = thisY + 1; yi < m; yi++) {
       if (treeMap[yi][thisX] >= thisTreeHeight) {
         return score + 1;
       }
