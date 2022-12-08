@@ -67,6 +67,71 @@ function isTreeVisible(
     isVisibleFromBot();
 }
 
+function makeTreeScore(
+  treeMap: number[][],
+  position: [y: number, x: number],
+): number {
+  const [thisY, thisX] = position;
+  const m = treeMap.length;
+  const n = treeMap[0].length;
+  const thisTreeHeight = treeMap[thisY][thisX];
+
+  function makeTreeScoreTop(): number {
+    let score = 0;
+
+    for (let yi = thisY - 1; yi >= 0; yi--) {
+      if (treeMap[yi][thisX] >= thisTreeHeight) {
+        return score + 1;
+      }
+      score++;
+    }
+
+    return score;
+  }
+
+  function makeTreeScoreBot(): number {
+    let score = 0;
+
+    for (let yi = thisY + 1; yi < n; yi++) {
+      if (treeMap[yi][thisX] >= thisTreeHeight) {
+        return score + 1;
+      }
+      score++;
+    }
+
+    return score;
+  }
+
+  function makeTreeScoreLeft(): number {
+    let score = 0;
+
+    for (let xi = thisX - 1; xi >= 0; xi--) {
+      if (treeMap[thisY][xi] >= thisTreeHeight) {
+        return score + 1;
+      }
+      score++;
+    }
+
+    return score;
+  }
+
+  function makeTreeScoreRight(): number {
+    let score = 0;
+
+    for (let xi = thisX + 1; xi < n; xi++) {
+      if (treeMap[thisY][xi] >= thisTreeHeight) {
+        return score + 1;
+      }
+      score++;
+    }
+
+    return score;
+  }
+
+  return makeTreeScoreTop() * makeTreeScoreBot() * makeTreeScoreLeft() *
+    makeTreeScoreRight();
+}
+
 async function main() {
   const text = await Deno.readTextFile("./inputs/8.txt");
   const textRows = text.split("\n");
@@ -83,7 +148,14 @@ async function main() {
     }
   }
 
-  console.log({ treeMap, m, n, visibleTrees });
+  let maxTreeScore = 0;
+  for (let yi = 0; yi < m; yi++) {
+    for (let xi = 0; xi < n; xi++) {
+      maxTreeScore = Math.max(maxTreeScore, makeTreeScore(treeMap, [yi, xi]));
+    }
+  }
+
+  console.log({ treeMap, m, n, visibleTrees, maxTreeScore });
 }
 
 await main();
