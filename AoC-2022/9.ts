@@ -1,21 +1,42 @@
-function clamp(min: number, value: number, max: number): number {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-}
+import { clamp } from "./common.ts";
 
 class Position {
   private constructor(public y: number, public x: number) {}
   static of(input: { y: number; x: number }): Position {
     return new Position(input.y, input.x);
   }
+
+  moved(direction: MoveDirection): Position {
+    switch (direction) {
+      case MoveDirection.Up:
+        return Position.of({ ...this, y: this.y + 1 });
+      case MoveDirection.Down:
+        return Position.of({ ...this, y: this.y - 1 });
+      case MoveDirection.Left:
+        return Position.of({ ...this, x: this.x - 1 });
+      case MoveDirection.Right:
+        return Position.of({ ...this, x: this.x + 1 });
+    }
+  }
+
+  attractedBy(somePosition: Position): Position {
+    switch (PositionsDistance.between(somePosition, this).value) {
+      case PositionsDistanceV.Zero:
+      case PositionsDistanceV.One:
+        return this;
+      case PositionsDistanceV.TwoOrMore: {
+        const yDiff = somePosition.y - this.y;
+        const xDiff = somePosition.x - this.x;
+        const newY = this.y + clamp(-1, yDiff, 1);
+        const newX = this.x + clamp(-1, xDiff, 1);
+
+        return Position.of({ y: newY, x: newX });
+      }
+    }
+  }
 }
 
-enum HeadMoveDirection {
+enum MoveDirection {
   Up = "U",
   Down = "D",
   Left = "L",
@@ -37,20 +58,13 @@ class State {
     return new State(input.headPosition, input.tailPositions);
   }
 
-  changed(headMove: HeadMoveDirection): State {
-    const newHeadPosition = makeHeadPositionAfterMove(
-      this.headPosition,
-      headMove,
-    );
+  afterHeadMove(headMoveDirection: MoveDirection): State {
+    const newHeadPosition = this.headPosition.moved(headMoveDirection);
     const newTailPositions = [...this.tailPositions];
-    newTailPositions[0] = makeTailPositionAfterComing(
-      newHeadPosition,
-      this.tailPositions[0],
-    );
+    newTailPositions[0] = this.tailPositions[0].attractedBy(newHeadPosition);
     for (let i = 1; i < this.tailPositions.length; i++) {
-      newTailPositions[i] = makeTailPositionAfterComing(
+      newTailPositions[i] = this.tailPositions[i].attractedBy(
         newTailPositions[i - 1],
-        this.tailPositions[i],
       );
     }
 
@@ -61,74 +75,42 @@ class State {
   }
 }
 
-function makeHeadPositionAfterMove(
-  currPosition: Position,
-  move: HeadMoveDirection,
-): Position {
-  switch (move) {
-    case HeadMoveDirection.Up:
-      return Position.of({ ...currPosition, y: currPosition.y + 1 });
-    case HeadMoveDirection.Down:
-      return Position.of({ ...currPosition, y: currPosition.y - 1 });
-    case HeadMoveDirection.Left:
-      return Position.of({ ...currPosition, x: currPosition.x - 1 });
-    case HeadMoveDirection.Right:
-      return Position.of({ ...currPosition, x: currPosition.x + 1 });
+class PositionsDistance {
+  private constructor(public value: PositionsDistanceV) {}
+
+  static between(
+    position: Position,
+    otherPosition: Position,
+  ): PositionsDistance {
+    const yDistance = Math.abs(position.y - otherPosition.y);
+    const xDistance = Math.abs(position.x - otherPosition.x);
+
+    if (yDistance === 1 && xDistance === 1) {
+      return new PositionsDistance(PositionsDistanceV.One);
+    }
+    if (xDistance + yDistance === 0) {
+      return new PositionsDistance(PositionsDistanceV.Zero);
+    }
+    if (xDistance + yDistance === 1) {
+      return new PositionsDistance(PositionsDistanceV.One);
+    }
+
+    return new PositionsDistance(PositionsDistanceV.TwoOrMore);
   }
 }
-
-enum PositionsDistance {
+enum PositionsDistanceV {
   Zero,
   One,
   TwoOrMore,
 }
 
-function makePositionDistance(
-  position: Position,
-  otherPosition: Position,
-): PositionsDistance {
-  const yDistance = Math.abs(position.y - otherPosition.y);
-  const xDistance = Math.abs(position.x - otherPosition.x);
-
-  if (yDistance === 1 && xDistance === 1) {
-    return PositionsDistance.One;
-  }
-  if (xDistance + yDistance === 0) {
-    return PositionsDistance.Zero;
-  }
-  if (xDistance + yDistance === 1) {
-    return PositionsDistance.One;
-  }
-
-  return PositionsDistance.TwoOrMore;
-}
-
-function makeTailPositionAfterComing(
-  headPosition: Position,
-  tailPosition: Position,
-): Position {
-  switch (makePositionDistance(headPosition, tailPosition)) {
-    case PositionsDistance.Zero:
-    case PositionsDistance.One:
-      return tailPosition;
-    case PositionsDistance.TwoOrMore: {
-      const yDiff = headPosition.y - tailPosition.y;
-      const xDiff = headPosition.x - tailPosition.x;
-      const newY = tailPosition.y + clamp(-1, yDiff, 1);
-      const newX = tailPosition.x + clamp(-1, xDiff, 1);
-
-      return Position.of({ y: newY, x: newX });
-    }
-  }
-}
-
 class Command {
   private constructor(
-    public headMove: HeadMoveDirection,
+    public headMove: MoveDirection,
     public quantity: number,
   ) {}
 
-  static of(input: { headMove: HeadMoveDirection; quantity: number }): Command {
+  static of(input: { headMove: MoveDirection; quantity: number }): Command {
     return new Command(input.headMove, input.quantity);
   }
 }
@@ -144,7 +126,7 @@ class PrevTailPositions {
 function parseCommand(rawCommand: string): Command {
   const [headMove, rawQuantity] = rawCommand.split(
     " ",
-  ) as [HeadMoveDirection, string];
+  ) as [MoveDirection, string];
   return Command.of({ headMove, quantity: Number.parseInt(rawQuantity) });
 }
 
@@ -158,7 +140,9 @@ async function main() {
 
   let state = State.of({
     headPosition: Position.of({ y: 0, x: 0 }),
-    tailPositions: [...Array(numberOfTailPositions).keys()].map((_) => Position.of({ y: 0, x: 0 })),
+    tailPositions: [...Array(numberOfTailPositions).keys()].map((_) =>
+      Position.of({ y: 0, x: 0 })
+    ),
   });
 
   const prevTailPositions = new PrevTailPositions();
@@ -166,7 +150,7 @@ async function main() {
 
   for (const command of commands) {
     for (let i = 0; i < command.quantity; i++) {
-      state = state.changed(command.headMove);
+      state = state.afterHeadMove(command.headMove);
       prevTailPositions.add(state.tailPositions[numberOfTailPositions - 1]);
     }
   }
