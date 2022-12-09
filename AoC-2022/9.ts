@@ -25,16 +25,16 @@ enum HeadMoveDirection {
 class State {
   private constructor(
     public headPosition: Position,
-    public tailPosition: Position,
+    public tailPositions: Position[],
   ) {}
 
   static of(
     input: {
       headPosition: Position;
-      tailPosition: Position;
+      tailPositions: Position[];
     },
   ): State {
-    return new State(input.headPosition, input.tailPosition);
+    return new State(input.headPosition, input.tailPositions);
   }
 
   changed(headMove: HeadMoveDirection): State {
@@ -42,14 +42,21 @@ class State {
       this.headPosition,
       headMove,
     );
-    const newTailPosition = makeTailPositionAfterComing(
+    const newTailPositions = [...this.tailPositions];
+    newTailPositions[0] = makeTailPositionAfterComing(
       newHeadPosition,
-      this.tailPosition,
+      this.tailPositions[0],
     );
+    for (let i = 1; i < this.tailPositions.length; i++) {
+      newTailPositions[i] = makeTailPositionAfterComing(
+        newTailPositions[i - 1],
+        this.tailPositions[i],
+      );
+    }
 
     return State.of({
       headPosition: newHeadPosition,
-      tailPosition: newTailPosition,
+      tailPositions: newTailPositions,
     });
   }
 }
@@ -126,7 +133,7 @@ class Command {
   }
 }
 
-class TailPositions {
+class PrevTailPositions {
   constructor(public rawData = new Set<string>()) {}
 
   add(position: Position): void {
@@ -141,7 +148,7 @@ function parseCommand(rawCommand: string): Command {
   return Command.of({ headMove, quantity: Number.parseInt(rawQuantity) });
 }
 
-type Input = Command[];
+const numberOfTailPositions = 9;
 
 async function main() {
   const text = await Deno.readTextFile("./inputs/9.txt");
@@ -151,20 +158,20 @@ async function main() {
 
   let state = State.of({
     headPosition: Position.of({ y: 0, x: 0 }),
-    tailPosition: Position.of({ y: 0, x: 0 }),
+    tailPositions: [...Array(numberOfTailPositions).keys()].map((_) => Position.of({ y: 0, x: 0 })),
   });
 
-  const tailPositions = new TailPositions();
-  tailPositions.add(state.tailPosition);
+  const prevTailPositions = new PrevTailPositions();
+  prevTailPositions.add(state.tailPositions[numberOfTailPositions - 1]);
 
   for (const command of commands) {
     for (let i = 0; i < command.quantity; i++) {
       state = state.changed(command.headMove);
-      tailPositions.add(state.tailPosition);
+      prevTailPositions.add(state.tailPositions[numberOfTailPositions - 1]);
     }
   }
 
-  console.log({ result: tailPositions.rawData.size });
+  console.log({ result: prevTailPositions.rawData.size });
 }
 
 await main();
