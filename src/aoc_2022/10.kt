@@ -44,6 +44,12 @@ fun String.toInstruction(): Instruction? {
     }
 }
 
+fun isSpriteShouldBeDrawn(registers: Registers, crtCycleIdx: Int): Boolean {
+    val pixelPosition = (crtCycleIdx % 40)
+
+    return (registers.x-1 .. registers.x+1).contains(pixelPosition)
+}
+
 fun main() {
     val rawInstruction = File("src/aoc_2022/inputs/10.txt").readLines()
 
@@ -56,5 +62,16 @@ fun main() {
         val xValue = registersHistory.registersAfterCycleIdx[cycleIdx - 1].x
         result += cycleIdx * xValue
     }
+    val pixels = mutableListOf<String>()
+
+    for ((cycleIdx, registers) in registersHistory.registersAfterCycleIdx.withIndex()) {
+        if (isSpriteShouldBeDrawn(registers, cycleIdx)) pixels.add("#") else pixels.add(".")
+    }
     println(result)
+
+    for (rowIdx in 0 until pixels.size.floorDiv(40)) {
+        val startIdx  = rowIdx * 40
+        val endIdx = startIdx + (40 - 1)
+        println(pixels.slice(startIdx..endIdx))
+    }
 }
