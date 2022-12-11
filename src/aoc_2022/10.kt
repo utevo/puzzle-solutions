@@ -62,16 +62,12 @@ fun main() {
         val xValue = registersHistory.registersAfterCycleIdx[cycleIdx - 1].x
         result += cycleIdx * xValue
     }
-    val pixels = mutableListOf<String>()
+    println(result)
 
+    val pixels = mutableListOf<String>()
     for ((cycleIdx, registers) in registersHistory.registersAfterCycleIdx.withIndex()) {
         if (isSpriteShouldBeDrawn(registers, cycleIdx)) pixels.add("#") else pixels.add(".")
     }
-    println(result)
 
-    for (rowIdx in 0 until pixels.size.floorDiv(40)) {
-        val startIdx  = rowIdx * 40
-        val endIdx = startIdx + (40 - 1)
-        println(pixels.slice(startIdx..endIdx))
-    }
+    pixels.chunked(40).forEach(::println)
 }
