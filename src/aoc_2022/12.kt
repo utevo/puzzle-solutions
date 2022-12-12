@@ -1,6 +1,7 @@
 package aoc_2022.d12
 
 import java.io.File
+import kotlin.math.min
 
 typealias Height = Short
 
@@ -21,6 +22,31 @@ data class Area(val heights: List<List<Height>>, val start: Position, val end: P
     operator fun get(pos: Position): Height {
         return heights[pos.y][pos.x]
     }
+
+    data class Entry(val position: Position, val height: Height)
+
+    fun entries(): Iterator<Entry> {
+        return object : Iterator<Entry> {
+            var nextPosition = Position(0, 0)
+
+            override fun hasNext(): Boolean {
+                return nextPosition.y < m
+            }
+
+            override fun next(): Entry {
+                val currPosition = nextPosition
+
+                nextPosition =
+                    Position(
+                        y = nextPosition.y + if ((nextPosition.x + 1) % n == 0) 1 else 0,
+                        x = (nextPosition.x + 1) % n
+                    )
+                return Entry(currPosition, get(currPosition))
+            }
+        }
+    }
+
+
 }
 
 typealias RawHeightmapRow = List<Char>
@@ -70,43 +96,54 @@ fun Area.reachableNeighborsOf(pos: Position): List<Position> =
     this.neighborsOf(pos).filter { this[it] <= (this[pos] + 1) }
 
 
-typealias BfsParents = Map<Position, Position?>
+class BfsResult(private val parentsOf: Map<Position, Position?>, private val explored: Set<Position>) {
+    fun distanceTo(pos: Position): Int {
+        if (pos !in explored) return Int.MAX_VALUE
+        val parent = parentsOf[pos] ?: return 0
 
-fun BfsParents.distanceTo(pos: Position): Int {
-    val parent = this[pos] ?: return 0
-
-    return this.distanceTo(pos = parent) + 1
-}
-
-fun Area.getBfsParents(): BfsParents {
-    val parents = mutableMapOf<Position, Position?>().withDefault { null }
-    val explored = mutableSetOf<Position>()
-    val queue = ArrayDeque<Position>()
-    queue.add(this.start)
-    explored.add(this.start)
-
-    while (!queue.isEmpty()) {
-        val currPos = queue.removeFirst()
-
-        for (neighbor in this.reachableNeighborsOf(currPos)) {
-            if (neighbor in explored) {
-                continue
-            }
-            parents[neighbor] = currPos
-            explored.add(neighbor)
-            queue.add(neighbor)
-        }
+        return this.distanceTo(pos = parent) + 1
     }
 
-    return parents
-}
+    companion object {
+        fun fromArea(area: Area, start: Position = area.start): BfsResult {
+            val parents = mutableMapOf<Position, Position?>().withDefault { null }
+            val explored = mutableSetOf<Position>()
+            val queue = ArrayDeque<Position>()
+            queue.add(start)
+            explored.add(start)
 
+            while (!queue.isEmpty()) {
+                val currPos = queue.removeFirst()
+
+                for (neighbor in area.reachableNeighborsOf(currPos)) {
+                    if (neighbor in explored) {
+                        continue
+                    }
+                    parents[neighbor] = currPos
+                    explored.add(neighbor)
+                    queue.add(neighbor)
+                }
+            }
+
+            return BfsResult(parents, explored)
+        }
+    }
+}
 
 fun main() {
     val lines = File("src/aoc_2022/inputs/12.txt").readLines()
     val rawHeightmapRows: List<RawHeightmapRow> = lines.map { it.toList() }
 
     val area = rawHeightmapRows.toArea()
-    val bfsParents = area.getBfsParents()
-    println(bfsParents.distanceTo(area.end))
+
+    var minDistance = Int.MAX_VALUE
+    for ((position, height) in area.entries()) {
+        if (height == 0.toShort()) {
+            val bfsResult = BfsResult.fromArea(area, position)
+            val distance = bfsResult.distanceTo(area.end)
+
+            minDistance = min(minDistance, distance)
+        }
+    }
+    println(minDistance)
 }
