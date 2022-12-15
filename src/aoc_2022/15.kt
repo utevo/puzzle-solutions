@@ -7,6 +7,44 @@ data class Position(val y: Int, val x: Int) {
     fun manhattanDistanceTo(other: Position): Int = abs(y - other.y) + abs(x - other.x)
 }
 
+fun Position.manhattanPointsWithDistance(distance: Int): List<Position> {
+    val position = mutableListOf<Position>()
+
+    val top = this.copy(y = this.y - distance)
+    position.add(top)
+    var curr = top
+    for (i in 1 until distance) {
+        curr = curr.copy(y = curr.y + 1, x = curr.x + 1)
+        position.add(curr)
+    }
+
+    val right = this.copy(x = this.x + distance)
+    position.add(right)
+    curr = right
+    for (i in 1 until distance) {
+        curr = curr.copy(y = curr.y + 1, x = curr.x - 1)
+        position.add(curr)
+    }
+
+    val bottom = this.copy(y = this.y + distance)
+    position.add(bottom)
+    curr = bottom
+    for (i in 1 until distance) {
+        curr = curr.copy(y = curr.y - 1, x = curr.x - 1)
+        position.add(curr)
+    }
+
+    val left = this.copy(x = this.x - distance)
+    position.add(left)
+    curr = left
+    for (i in 1 until distance) {
+        curr = curr.copy(y = curr.y - 1, x = curr.x + 1)
+        position.add(curr)
+    }
+
+    return position
+}
+
 data class SensorClosedBacon(val sensorPosition: Position, val closedBaconPosition: Position) {
     val distance: Int by lazy { sensorPosition.manhattanDistanceTo(closedBaconPosition) }
 }
@@ -19,15 +57,17 @@ fun String.toSensorClosedBacon(): SensorClosedBacon {
 
     val (rawSensorPosition, rawClosedBaconPosition) = this.split(" ")
     return SensorClosedBacon(
-        sensorPosition = rawSensorPosition.toPosition(),
-        closedBaconPosition = rawClosedBaconPosition.toPosition()
+        sensorPosition = rawSensorPosition.toPosition(), closedBaconPosition = rawClosedBaconPosition.toPosition()
     )
 }
 
 fun List<SensorClosedBacon>.canBaconExist(baconPosition: Position): Boolean {
     for (sensorClosedBacon in this) {
         if (sensorClosedBacon.closedBaconPosition == baconPosition) {
-            return true
+            return false
+        }
+        if (sensorClosedBacon.sensorPosition == baconPosition) {
+            return false
         }
         if (sensorClosedBacon.distance >= sensorClosedBacon.sensorPosition.manhattanDistanceTo(baconPosition)) {
             return false
@@ -37,20 +77,28 @@ fun List<SensorClosedBacon>.canBaconExist(baconPosition: Position): Boolean {
     return true
 }
 
-const val ASKED_Y = 2000000
+const val MAX_DISTANCE = 4000000
+
+fun Position.tuningFrequency(): Long {
+    return 4000000L * this.x + this.y
+}
 
 fun main() {
     val lines = File("src/aoc_2022/inputs/15.txt").readLines()
     val sensorClosedBaconList = lines.map { it.toSensorClosedBacon() }
 
-    val minX = sensorClosedBaconList.minOf { it.sensorPosition.x - it.distance }
-    val maxX = sensorClosedBaconList.maxOf { it.sensorPosition.x + it.distance }
-    println("minX: $minX, maxX: $maxX")
-
-    val possibleBaconPositions =
-        (minX..maxX).map { Position(y = ASKED_Y, x = it) }.filter { !sensorClosedBaconList.canBaconExist(it) }
-
-    println(possibleBaconPositions.size)
+    for (sensorClosedBacon in sensorClosedBaconList) {
+        val positionsToCheck =
+            sensorClosedBacon.sensorPosition.manhattanPointsWithDistance(sensorClosedBacon.distance + 1)
+        for (positionToCheck in positionsToCheck) {
+            if (positionToCheck.x in (0..MAX_DISTANCE) && positionToCheck.y in (0..MAX_DISTANCE)) {
+                if (sensorClosedBaconList.canBaconExist(positionToCheck)) {
+                    println(positionToCheck.tuningFrequency())
+                    return
+                }
+            }
+        }
+    }
 }
 
 
