@@ -27,6 +27,10 @@ sealed class PacketItem : Comparable<PacketItem> {
         return super.equals(other)
     }
 
+    override fun hashCode(): Int {
+        throw Exception("PacketItem can't be hashed")
+    }
+
     companion object {
         fun compareListToList(some: PacketList, other: PacketList): Int {
             for ((someEle, otherEle) in some.items zip other.items) {
@@ -135,22 +139,23 @@ fun main() {
     }
 
     val result = packetPairs.mapIndexedNotNull() { index, value ->
-        if (value.first < value.second) Pair(
+        if (value.first < value.second) IndexedValue(
             index + 1,
             value
         ) else null
     }
 
-    println(result.sumOf { it.first })
+    println(result.sumOf { it.index })
 
     val firstDivider = PacketList(listOf(PacketList(listOf(PacketInt(2)))))
     val secondDivider = PacketList(listOf(PacketList(listOf(PacketInt(6)))))
 
-    val newItems = packetPairs.flatMap { it -> listOf(it.first, it.second) }.plus(firstDivider).plus(secondDivider)
-    val newItemsSorted = newItems.sorted()
+    val packetsWithDividers = packetPairs.flatMap { it.toList() }.plus(firstDivider).plus(secondDivider)
+    val packetsWithDividersSorted = packetsWithDividers.sorted()
 
-    val firstDividerIndex = newItemsSorted.indexOf(firstDivider) + 1
-    val secondDividerIndex = newItemsSorted.indexOf(secondDivider) + 1
+    val firstDividerIndex = packetsWithDividersSorted.indexOf(firstDivider) + 1
+    val secondDividerIndex = packetsWithDividersSorted.indexOf(secondDivider) + 1
+    val result2 = firstDividerIndex * secondDividerIndex
 
-    println(firstDividerIndex * secondDividerIndex)
+    println(result2)
 }
