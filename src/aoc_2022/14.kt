@@ -44,6 +44,10 @@ class Cave(rockPaths: List<RockPath>) {
         objectsPositions.map { it.y }.max()
     }
 
+    val floorHeight: Int by lazy {
+        yOfLowestObject + 2
+    }
+
     init {
         for (rockPath in rockPaths) {
             objectsPositions.addAll(rockPath.positions())
@@ -52,12 +56,15 @@ class Cave(rockPaths: List<RockPath>) {
 
     enum class AddSandResult {
         SandStop,
-        SandFall
+        SandBlocked
     }
 
     fun addSand(): AddSandResult {
         var currSandPosition = SAND_START_POSITION.copy()
-        while (currSandPosition.y < yOfLowestObject) {
+        while (currSandPosition.y < (floorHeight - 1)) {
+            if (currSandPosition in objectsPositions) {
+                return AddSandResult.SandBlocked
+            }
             when (sandStep(currSandPosition)) {
                 SandStep.Stop -> {
                     objectsPositions.add(currSandPosition)
@@ -77,7 +84,8 @@ class Cave(rockPaths: List<RockPath>) {
                 }
             }
         }
-        return AddSandResult.SandFall
+        objectsPositions.add(currSandPosition)
+        return AddSandResult.SandStop
     }
 
 
@@ -110,7 +118,7 @@ fun main() {
     val cave = Cave(rockPaths = rockPaths)
 
     var result = 0
-    while (cave.addSand() != Cave.AddSandResult.SandFall) {
+    while (cave.addSand() != Cave.AddSandResult.SandBlocked) {
         result++
     }
 
