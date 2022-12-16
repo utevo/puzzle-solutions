@@ -1,0 +1,56 @@
+XC; 0; YK, AM
+ME; 0; UU, SX
+EP; 0; YS, QU
+GR; 0; QZ, OG
+FA; 0; DB, DP
+UJ; 0; XN, CH
+QU; 0; EP, YK
+OX; 19; RI, PV
+VI; 0; WI, XN
+IQ; 0; QL, OG
+XO; 0; GU, UI
+IY; 0; VC, NT
+YS; 24; EP
+XN; 7; DG, UJ, VD, VI, OU
+AM; 6; KA, NC, XC, TP, SI
+IH; 8; TW, CH, WY, EC
+ZR; 18; RI
+FP; 14; DP, UF
+KA; 0; VC, AM
+NC; 0; UI, AM
+EC; 0; IH, GU
+DG; 0; AA, XN
+RI; 0; OX, ZR
+NJ; 0; YK, TW
+OG; 12; GR, WY, IQ, UE
+IB; 0; VB, UU
+RP; 0; UI, OU
+OU; 0; XN, RP
+NT; 0; IY, AA
+MN; 0; LX, VC
+SI; 0; AM, AA
+VB; 0; KT, IB
+UI; 4; YI, XO, LX, NC, RP
+DL; 0; GU, UE
+CH; 0; UJ, IH
+WI; 0; VI, VC
+GU; 11; EC, XO, DL, SX
+KT; 17; PV, VB
+TW; 0; IH, NJ
+UE; 0; DL, OG
+PV; 0; KT, OX
+DP; 0; FP, FA
+TP; 0; VD, AM
+YI; 0; AA, UI
+LX; 0; UI, MN
+QZ; 0; GR, UU
+DB; 23; FA
+SX; 0; ME, GU
+QL; 0; AA, IQ
+YK; 16; NJ, XC, QU
+VC; 5; UF, KA, WI, IY, MN
+VD; 0; TP, XN
+WY; 0; IH, OG
+AA; 0; YI, DG, QL, NT, SI
+UF; 0; VC, FP
+UU; 15; QZ, IB, ME

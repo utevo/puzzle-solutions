@@ -1,6 +1,6 @@
 package aoc_2022
 
-fun Any.prettyString(): String {
+fun Any.toPrettyString(): String {
 
     var indentLevel = 0
     val indentWidth = 4
