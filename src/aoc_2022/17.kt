@@ -147,6 +147,7 @@ fun <T> List<T>.asCyclicSequence(): Sequence<T> {
     return idxSequence.map { this[it] }
 }
 
+
 fun makeBasePosition(shape: FallingRockShape, maxRockPieceY: Int): BasePosition {
     val shapeMinY = shape.rockPieces.minOf { it.y }
     val shapeMinX = shape.rockPieces.minOf { it.x }
@@ -154,15 +155,44 @@ fun makeBasePosition(shape: FallingRockShape, maxRockPieceY: Int): BasePosition 
     return BasePosition(y = maxRockPieceY + 4 - shapeMinY, x = 2 - shapeMinX)
 }
 
+typealias Last200Rows = Set<RockPiecePosition>
+
+
+const val NUMBER_OF_ROWS = 200
+fun Tunnel.last200Rows(): Last200Rows {
+    val maxRockPieceY = maxRockPieceY()
+    val last20Rows: MutableRockPieces = mutableSetOf()
+
+    for (y in (maxRockPieceY - NUMBER_OF_ROWS + 1..maxRockPieceY)) {
+        for (x in (0 until width)) {
+            if (Position(y, x) in this.rockPieces) {
+                last20Rows.add(Position(y - maxRockPieceY + NUMBER_OF_ROWS - 1, x))
+            }
+        }
+    }
+    return last20Rows
+}
+
+data class State(val last200Rows: Last200Rows, val lastRockShapeId: Long, val lastJetMoveId: Long)
+data class PrevStateMetadata(val rockShapeIdx: Long, val maxRockPieceY: Int)
+
+const val HOW_TALL_AFTER = 1000000000000L
+
 fun main() {
     val lines = File("src/aoc_2022/inputs/17.txt").readLines()
     val jetPattern = lines[0].toJetPattern()
     val tunnel = Tunnel(rockPieces = mutableSetOf())
 
-    val jetPatternIterator = jetPattern.moves.asCyclicSequence().iterator()
+    val jetPatternIterator =
+        jetPattern.moves.asCyclicSequence().iterator()
 
+    val prevStates = mutableSetOf<State>()
+    val metadataByPrevState = mutableMapOf<State, PrevStateMetadata>()
+    var patternSkipHeight = 0L
 
-    for (rockShape in FallingRockShape.all.asCyclicSequence().take(2022)) {
+    var rockShapeIdx = 0L
+    var jetMoveIdx = -1L
+    for (rockShape in FallingRockShape.all.asCyclicSequence()) {
         var fallingRock =
             FallingRock(
                 shape = rockShape,
@@ -170,13 +200,44 @@ fun main() {
             )
 
         while (true) {
-            fallingRock = fallingRock.tryMakeJetMove(jetMove = jetPatternIterator.next(), tunnel = tunnel)
+            val jetMove = jetPatternIterator.next()
+            jetMoveIdx++
+            fallingRock = fallingRock.tryMakeJetMove(jetMove = jetMove, tunnel = tunnel)
             if (!fallingRock.canFallDown(tunnel)) break
             fallingRock = fallingRock.makeFallDown()
         }
+
         tunnel.add(fallingRock)
+        if (rockShapeIdx == HOW_TALL_AFTER) {
+            break
+        }
+
+        if (patternSkipHeight == 0L) {
+            val state = State(
+                last200Rows = tunnel.last200Rows(),
+                lastRockShapeId = rockShapeIdx % FallingRockShape.all.size,
+                lastJetMoveId = jetMoveIdx % jetPattern.moves.size
+            )
+            if (state in prevStates) {
+                // There's probably some off-by-one error in this scope.
+                val prevStateMetadata = metadataByPrevState.getValue(state)
+                val howMuchHeightIsMissing = HOW_TALL_AFTER - tunnel.maxRockPieceY()
+                val numberOfRockShapesInPattern = rockShapeIdx - prevStateMetadata.rockShapeIdx
+                val patternHeight =
+                    tunnel.maxRockPieceY() - (metadataByPrevState[state]?.maxRockPieceY
+                        ?: throw IllegalArgumentException())
+                val numberOfPattern = howMuchHeightIsMissing.floorDiv(numberOfRockShapesInPattern)
+                rockShapeIdx += numberOfPattern * numberOfRockShapesInPattern
+                patternSkipHeight = numberOfPattern * patternHeight
+            }
+
+            prevStates.add(state)
+            metadataByPrevState[state] =
+                PrevStateMetadata(rockShapeIdx = rockShapeIdx, maxRockPieceY = tunnel.maxRockPieceY())
+        }
+        rockShapeIdx++
     }
 
-    val result = tunnel.maxRockPieceY() + 1
+    val result = tunnel.maxRockPieceY() + patternSkipHeight
     println(result)
 }
