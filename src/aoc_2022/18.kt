@@ -32,6 +32,6 @@ fun main() {
     val lines = File("src/aoc_2022/inputs/18.txt").readLines()
     val cubePositions: CubePositions = lines.map { it.toCubePosition() }.toSet()
 
-    val result = cubePositions.map { it.exposedSidesCount(cubePositions - it) }.sum()
+    val result = cubePositions.sumOf { it.exposedSidesCount(cubePositions - it) }
     println(result)
 }
