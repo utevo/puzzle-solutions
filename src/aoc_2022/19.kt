@@ -102,11 +102,12 @@ data class RobotsState(val ore: Int = 0, val clay: Int = 0, val obsidian: Int = 
     }
 }
 
+const val BASE_LEFT_MINUTES = 32
 
 data class State(
     val resources: Resources = Resources(),
     val robots: RobotsState = RobotsState(ore = 1),
-    val leftMinutes: Int = 32
+    val leftMinutes: Int = BASE_LEFT_MINUTES
 ) {
     fun afterWaitingMinute(): State {
         return copy(
@@ -151,27 +152,31 @@ data class State(
     }
 }
 
-//fun State.isNotBetterAnyAnyway(other: State): Boolean {
-//    return leftMinutes <= other.leftMinutes && robots.isNotBetterAnyAnyway(other.robots) && resources.isNotBetterAnyAnyway(
-//        other.resources
-//    )
-//}
-//
-//fun RobotsState.isNotBetterAnyAnyway(other: RobotsState): Boolean {
-//    return ore <= other.ore && clay <= other.clay && obsidian <= other.obsidian && geode <= other.geode
-//}
-//
-//fun Resources.isNotBetterAnyAnyway(other: Resources): Boolean {
-//    return ore <= other.ore && clay <= other.clay && obsidian <= other.obsidian && geode <= other.geode
-//}
+fun State.isNotBetterAnyAnyway(other: State): Boolean {
+    return leftMinutes <= other.leftMinutes && robots.isNotBetterAnyAnyway(other.robots) && resources.isNotBetterAnyAnyway(
+        other.resources
+    )
+}
 
-// need some time to calculate result
+fun RobotsState.isNotBetterAnyAnyway(other: RobotsState): Boolean {
+    return ore <= other.ore && clay <= other.clay && obsidian <= other.obsidian && geode <= other.geode
+}
+
+fun Resources.isNotBetterAnyAnyway(other: Resources): Boolean {
+    return ore <= other.ore && clay <= other.clay && obsidian <= other.obsidian && geode <= other.geode
+}
+
+// need few minutes time to calculate result
 fun main() {
     val lines = File("src/aoc_2022/inputs/19.txt").readLines()
     val blueprints = lines.map { it.toBlueprint() }.take(3)
 
     fun maxGeodeCount(blueprint: Blueprint): Int {
         var maxGeodeCount = 0
+
+        val bestStateByLeftTime =
+            (0..BASE_LEFT_MINUTES).associate { Pair(it, State(resources = Resources(ore = -100), leftMinutes = it)) }
+                .toMutableMap()
 
         fun backtrack(state: State) {
             maxGeodeCount = max(maxGeodeCount, state.resources.geode)
@@ -182,13 +187,21 @@ fun main() {
             if (state.geodeUpperLimit(blueprint) <= maxGeodeCount) {
                 return
             }
-            if (state.leftMinutes != 1) {
-                for (robotKind in RobotKind.values()) {
-                    if (state.canBuildRobot(robotKind, blueprint)) {
-                        backtrack(state.afterBuildingRobot(robotKind, blueprint))
-                    }
+
+            val bestPrevState = bestStateByLeftTime.getValue(state.leftMinutes)
+            if (state.isNotBetterAnyAnyway(bestPrevState)) {
+                return
+            }
+            if (bestPrevState.isNotBetterAnyAnyway(state)) {
+                bestStateByLeftTime[state.leftMinutes] = state
+            }
+
+            for (robotKind in RobotKind.values()) {
+                if (state.canBuildRobot(robotKind, blueprint)) {
+                    backtrack(state.afterBuildingRobot(robotKind, blueprint))
                 }
             }
+
             backtrack(state.afterWaitingMinute())
         }
 
