@@ -1,0 +1,2 @@
+4 ore,2 ore,3 ore and 14 clay,2 ore and 7 obsidian
+2 ore,3 ore,3 ore and 8 clay,3 ore and 12 obsidian
