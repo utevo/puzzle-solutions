@@ -2,6 +2,7 @@ package aoc_2022.d19
 
 import java.io.File
 import kotlin.math.max
+import kotlin.math.min
 
 data class Resources(val ore: Int = 0, val clay: Int = 0, val obsidian: Int = 0, val geode: Int = 0) {
     operator fun plus(other: Resources): Resources {
@@ -105,7 +106,7 @@ data class RobotsState(val ore: Int = 0, val clay: Int = 0, val obsidian: Int = 
 data class State(
     val resources: Resources = Resources(),
     val robots: RobotsState = RobotsState(ore = 1),
-    val leftMinutes: Int = 24
+    val leftMinutes: Int = 32
 ) {
     fun afterWaitingMinute(): State {
         return copy(
@@ -131,17 +132,43 @@ data class State(
         return cost.ore <= resources.ore && cost.clay <= resources.clay && cost.obsidian <= resources.obsidian && cost.geode <= resources.geode
     }
 
-    fun geodeUpperLimit(): Int {
+    private fun obsidianUpperLimit(): Int {
+        val sureObsidianCount = resources.obsidian + leftMinutes * robots.obsidian
+        val theoreticalObsidianGainCount = (leftMinutes - 1) * (leftMinutes) / 2
+
+        return sureObsidianCount + theoreticalObsidianGainCount
+    }
+
+    fun geodeUpperLimit(blueprint: Blueprint): Int {
         val sureGeodeCount = resources.geode + leftMinutes * robots.geode
-        val theoreticalGeodeGainCount = (leftMinutes - 1) * (leftMinutes) / 2
+
+        val theoreticalMaxGainedGeodeRobot =
+            min(leftMinutes - 1, obsidianUpperLimit().floorDiv(blueprint.geodeRobotCost.obsidian))
+
+        val theoreticalGeodeGainCount =
+            theoreticalMaxGainedGeodeRobot * (theoreticalMaxGainedGeodeRobot - 1) / 2 + (leftMinutes - theoreticalMaxGainedGeodeRobot) * theoreticalMaxGainedGeodeRobot
         return sureGeodeCount + theoreticalGeodeGainCount
     }
 }
 
-// need few minutes to calculate result
+//fun State.isNotBetterAnyAnyway(other: State): Boolean {
+//    return leftMinutes <= other.leftMinutes && robots.isNotBetterAnyAnyway(other.robots) && resources.isNotBetterAnyAnyway(
+//        other.resources
+//    )
+//}
+//
+//fun RobotsState.isNotBetterAnyAnyway(other: RobotsState): Boolean {
+//    return ore <= other.ore && clay <= other.clay && obsidian <= other.obsidian && geode <= other.geode
+//}
+//
+//fun Resources.isNotBetterAnyAnyway(other: Resources): Boolean {
+//    return ore <= other.ore && clay <= other.clay && obsidian <= other.obsidian && geode <= other.geode
+//}
+
+// need some time to calculate result
 fun main() {
     val lines = File("src/aoc_2022/inputs/19.txt").readLines()
-    val blueprints = lines.map { it.toBlueprint() }
+    val blueprints = lines.map { it.toBlueprint() }.take(3)
 
     fun maxGeodeCount(blueprint: Blueprint): Int {
         var maxGeodeCount = 0
@@ -152,13 +179,14 @@ fun main() {
                 return
             }
 
-            if (state.geodeUpperLimit() <= maxGeodeCount) {
+            if (state.geodeUpperLimit(blueprint) <= maxGeodeCount) {
                 return
             }
-
-            for (robotKind in RobotKind.values()) {
-                if (state.canBuildRobot(robotKind, blueprint)) {
-                    backtrack(state.afterBuildingRobot(robotKind, blueprint))
+            if (state.leftMinutes != 1) {
+                for (robotKind in RobotKind.values()) {
+                    if (state.canBuildRobot(robotKind, blueprint)) {
+                        backtrack(state.afterBuildingRobot(robotKind, blueprint))
+                    }
                 }
             }
             backtrack(state.afterWaitingMinute())
@@ -174,7 +202,7 @@ fun main() {
         maxGeodeCount
     }
 
-    val result = maxGeodeCounts.withIndex().sumOf { it.value * (it.index + 1) }
+    val result = maxGeodeCounts.reduce { acc, it -> acc * it }
 
     println("result: $result")
 }
