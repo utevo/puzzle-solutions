@@ -49,7 +49,7 @@ fun String.toYellOperator(): YellOperator {
 }
 
 class Monkeys(monkeyList: List<Monkey>) {
-    private val monkeyByName = monkeyList.associateBy { it.name }
+    val monkeyByName = monkeyList.associateBy { it.name }.toMutableMap()
 
     fun eval(monkeyName: MonkeyName): Long? {
         val monkeyJob = monkeyByName[monkeyName]?.job ?: return null
@@ -72,13 +72,33 @@ fun String.toMonkeyJob(): MonkeyJob {
     return MonkeyJob.YellOperation(firstMonkeyName, rawOperator.toYellOperator(), secondMonkeyName)
 }
 
-
+// Found by manual binary search 👅
+const val FROM = 3582317900000L
+const val HOW_MANY = 1000000L
 fun main() {
     val lines = File("src/aoc_2022/inputs/21.txt").readLines()
     val monkeyList = lines.map { it.toMonkey() }
 
     val monkeys = Monkeys(monkeyList)
 
-    val result = monkeys.eval("root")
-    println("result: $result")
+    val root = monkeys.monkeyByName.getValue("root")
+    val rootOperation = root.job as MonkeyJob.YellOperation
+
+    for (humnNumber in FROM..FROM + HOW_MANY) {
+        monkeys.monkeyByName["humn"] = Monkey("humn", MonkeyJob.YellNumber(humnNumber))
+
+        val firstValue = monkeys.eval(rootOperation.firstMonkeyName) as Long
+        val secondValue = monkeys.eval(rootOperation.secondMonkeyName) as Long
+        if (humnNumber % 10000L == 0L) {
+            println("$firstValue vs $secondValue")
+            println(firstValue - secondValue)
+        }
+
+        if (firstValue == secondValue) {
+            println("humnNumber: $humnNumber")
+            return
+        }
+    }
+
+    println("Not found :(")
 }
