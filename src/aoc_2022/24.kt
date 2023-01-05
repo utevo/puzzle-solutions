@@ -2,7 +2,6 @@ package aoc_2022.d24
 
 import java.io.File
 
-
 enum class Direction {
     N, E, S, W;
 
@@ -171,20 +170,31 @@ fun goodNextPositions(position: Position2D, valley: Valley): Set<Position2D> {
     return (position.neighbors() + position).filter { valley.positionIsOkForPerson(it) }.toSet()
 }
 
-fun main() {
-    val lines = File("src/aoc_2022/inputs/24.txt").readLines()
-    var valley = lines.toValley()
+data class CalcTimeResult(val time: Int, val valley: Valley)
 
-    val accessiblePositionsByTime: MutableList<Set<Position2D>> = mutableListOf(setOf(valley.startPosition))
+fun calcTime(from: Position2D, to: Position2D, valley: Valley): CalcTimeResult {
+    var outValley = valley
+    val accessiblePositionsByTime: MutableList<Set<Position2D>> = mutableListOf(setOf(from))
 
     while (true) {
-        valley = valley.next()
+        outValley = outValley.next()
         val prevAccessiblePositions = accessiblePositionsByTime.last()
-        val currAccessiblePositions = prevAccessiblePositions.flatMap { goodNextPositions(it, valley) }.toSet()
-        if (currAccessiblePositions.any { it == valley.endPosition }) {
-            println("result: ${accessiblePositionsByTime.size}")
-            return
+        val currAccessiblePositions = prevAccessiblePositions.flatMap { goodNextPositions(it, outValley) }.toSet()
+        if (currAccessiblePositions.any { it == to }) {
+            return CalcTimeResult(time = accessiblePositionsByTime.size, valley = outValley)
         }
         accessiblePositionsByTime.add(currAccessiblePositions)
     }
+}
+
+fun main() {
+    val lines = File("src/aoc_2022/inputs/24.txt").readLines()
+    val valley = lines.toValley()
+
+    val result1 = calcTime(valley.startPosition, valley.endPosition, valley)
+    val result2 = calcTime(valley.endPosition, valley.startPosition, result1.valley)
+    val result3 = calcTime(valley.startPosition, valley.endPosition, result2.valley)
+
+    val result = result1.time + result2.time + result3.time
+    println("result: $result")
 }
