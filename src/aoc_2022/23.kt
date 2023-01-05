@@ -7,11 +7,11 @@ data class Position(val y: Int, val x: Int)
 
 typealias ElfPosition = Position
 
-data class Elves(val positions: Set<ElfPosition>) {
-    val minY by lazy { positions.minOf { it.y } }
-    val maxY by lazy { positions.maxOf { it.y } }
-    val minX by lazy { positions.minOf { it.x } }
-    val maxX by lazy { positions.maxOf { it.x } }
+data class Elves(val positions: MutableSet<ElfPosition>) {
+    fun minY() = positions.minOf { it.y }
+    fun maxY() = positions.maxOf { it.y }
+    fun minX() = positions.minOf { it.x }
+    fun maxX() = positions.maxOf { it.x }
 
     fun afterMovements(movements: CorrectMovements): Elves {
         val newPosition = positions.toMutableSet()
@@ -24,14 +24,10 @@ data class Elves(val positions: Set<ElfPosition>) {
         return Elves(newPosition)
     }
 
-    operator fun minus(position: ElfPosition): Elves {
-        return copy(positions = positions - position)
-    }
-
     override fun toString(): String {
         var asString = ""
-        for (y in minY..maxY) {
-            for (x in minX..maxX) {
+        for (y in minY()..maxY()) {
+            for (x in minX()..maxX()) {
                 asString += if (Position(y, x) in positions) '#' else '.'
             }
             asString += '\n'
@@ -89,7 +85,11 @@ data class PlanedMovements(val movements: Set<PlannedMovement>) {
 
 data class CorrectMovement(val movement: ElfMovement)
 
-data class CorrectMovements(val movements: Set<CorrectMovement>)
+data class CorrectMovements(val movements: Set<CorrectMovement>) {
+    fun noElfMoved(): Boolean {
+        return movements.all { it.movement.from == it.movement.to }
+    }
+}
 
 data class MoveStrategy(
     val name: String,
@@ -100,9 +100,7 @@ data class MoveStrategy(
 val stayStrategy = MoveStrategy(
     name = "stay",
     `if` = { elfPosition, otherElves ->
-        otherElves.positions.intersect(
-            elfPosition.neighborPositions()
-        ).isEmpty()
+        elfPosition.neighborPositions().all { it !in otherElves.positions }
     },
     move = { it }
 )
@@ -110,13 +108,11 @@ val stayStrategy = MoveStrategy(
 val goNorthStrategy = MoveStrategy(
     name = "north",
     `if` = { elfPosition, otherElves ->
-        otherElves.positions.intersect(
-            setOf(
-                elfPosition.n(),
-                elfPosition.ne(),
-                elfPosition.nw(),
-            )
-        ).isEmpty()
+        setOf(
+            elfPosition.n(),
+            elfPosition.ne(),
+            elfPosition.nw(),
+        ).all { it !in otherElves.positions }
     },
     move = { it.n() }
 )
@@ -124,13 +120,11 @@ val goNorthStrategy = MoveStrategy(
 val goSouthStrategy = MoveStrategy(
     name = "south",
     `if` = { elfPosition, otherElves ->
-        otherElves.positions.intersect(
-            setOf(
-                elfPosition.s(),
-                elfPosition.se(),
-                elfPosition.sw(),
-            )
-        ).isEmpty()
+        setOf(
+            elfPosition.s(),
+            elfPosition.se(),
+            elfPosition.sw(),
+        ).all { it !in otherElves.positions }
     },
     move = { it.s() }
 )
@@ -138,13 +132,11 @@ val goSouthStrategy = MoveStrategy(
 val goWestStrategy = MoveStrategy(
     name = "west",
     `if` = { elfPosition, otherElves ->
-        otherElves.positions.intersect(
-            setOf(
-                elfPosition.w(),
-                elfPosition.nw(),
-                elfPosition.sw(),
-            )
-        ).isEmpty()
+        setOf(
+            elfPosition.w(),
+            elfPosition.nw(),
+            elfPosition.sw(),
+        ).all { it !in otherElves.positions }
     },
     move = { it.w() }
 )
@@ -152,13 +144,11 @@ val goWestStrategy = MoveStrategy(
 val goEastStrategy = MoveStrategy(
     name = "east",
     `if` = { elfPosition, otherElves ->
-        otherElves.positions.intersect(
-            setOf(
-                elfPosition.e(),
-                elfPosition.ne(),
-                elfPosition.se(),
-            )
-        ).isEmpty()
+        setOf(
+            elfPosition.e(),
+            elfPosition.ne(),
+            elfPosition.se(),
+        ).all { it !in otherElves.positions }
     },
     move = { it.e() }
 )
@@ -181,29 +171,28 @@ val initMoveStrategies =
     MoveStrategies(listOf(stayStrategy, goNorthStrategy, goSouthStrategy, goWestStrategy, goEastStrategy))
 
 
-fun Elves.toResult(): Int {
-    val squareSize = (maxY - minY + 1) * (maxX - minX + 1)
-
-    return squareSize - positions.size
-}
-
-const val NUMBER_OF_ROUNDS = 10
-
 fun main() {
     val lines = File("src/aoc_2022/inputs/23.txt").readLines()
     var elves = lines.toElves()
 
     var currMoveStrategies = initMoveStrategies.copy()
 
-    repeat(NUMBER_OF_ROUNDS) {
+    var i = 1
+    do {
         val plannedMovements: PlanedMovements =
-            elves.positions.map { currMoveStrategies.apply(elfPosition = it, otherElves = elves - it) }.toSet()
-                .let { PlanedMovements(it) }
+            elves.positions.map { elfPosition ->
+                currMoveStrategies.apply(
+                    elfPosition = elfPosition,
+                    otherElves = elves
+                )
+            }.toSet()
+                .let { positions -> PlanedMovements(positions) }
 
         val correctMovements: CorrectMovements = plannedMovements.toCorrectMovements()
         elves = elves.afterMovements(correctMovements)
         currMoveStrategies = currMoveStrategies.next()
-    }
+        i++
+    } while (!correctMovements.noElfMoved())
 
-    println("result: ${elves.toResult()}")
+    println("result: $i")
 }
